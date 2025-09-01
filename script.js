@@ -14,12 +14,13 @@ const statusText = document.getElementById("statusText");
 let totalScans = 0;
 let phishingScans = 0;
 let safeScans = 0;
-let apiUrl = "https://adAstra144-Anti-Phishing-Scanner-0.hf.space";
+let apiUrl = "https://adAStra144-Anti-Phishing-Scanner-0.hf.space";
 let explainerUrl = "";
 let isScanning = false;
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
+    checkApiStatus();
     setupEventListeners();
     loadStats();
     setupAccessibility();
@@ -28,7 +29,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupMobileMenu();
     updateUserUI(); // Add this line to update UI on DOM ready
     setupImagePicker();
-    updateCameraOptionVisibility(); // Initialize camera option visibility
     // Initial padding adjustment
     adjustChatBottomPadding();
 
@@ -173,14 +173,8 @@ function adjustChatBottomPadding() {
 }
 
 // Recalculate on resize and orientation changes
-window.addEventListener('resize', () => {
-    adjustChatBottomPadding();
-    updateCameraOptionVisibility();
-});
-window.addEventListener('orientationchange', () => {
-    adjustChatBottomPadding();
-    updateCameraOptionVisibility();
-});
+window.addEventListener('resize', adjustChatBottomPadding);
+window.addEventListener('orientationchange', adjustChatBottomPadding);
 
 // Mobile drawer menu setup
 function setupMobileMenu() {
@@ -469,6 +463,47 @@ function initQuiz() {
 }
 // ---------- end of initQuiz replacement ----------
 
+// Check API status
+async function checkApiStatus() {
+    try {
+        statusIndicator.className = "status-indicator checking";
+        statusText.textContent = "Checking...";
+        
+        // Check main classification API
+        const response = await fetch(`${apiUrl}/health`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // Check explainer API
+        let explainerStatus = "Unknown";
+        try {
+            const expResponse = await fetch(`${explainerUrl}/health`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            explainerStatus = expResponse.ok ? "Available" : "Unavailable";
+        } catch (error) {
+            explainerStatus = "Unavailable";
+        }
+        
+        if (response.ok) {
+            statusIndicator.className = "status-indicator online";
+            statusText.textContent = `Online (Explainer: ${explainerStatus})`;
+        } else {
+            throw new Error('API not responding');
+        }
+    } catch (error) {
+        console.error('API Status Check Error:', error);
+        statusIndicator.className = "status-indicator offline";
+        statusText.textContent = "Offline";
+    }
+}
+
 // Append message to chat
 function appendMessage(content, sender = "user", isTyping = false) {
     const bubble = document.createElement("div");
@@ -500,7 +535,7 @@ function appendMessage(content, sender = "user", isTyping = false) {
     chatWindow.scrollTop = chatWindow.scrollHeight;
     adjustChatBottomPadding();
     
-    // Remove welcome message after first user message
+      // Remove welcome message after first user message
     const welcomeMessage = chatWindow.querySelector('.welcome-message');
     if (welcomeMessage && sender === "user") {
         welcomeMessage.style.display = 'none';
@@ -560,7 +595,7 @@ async function scanMessage() {
     
     // Show loading states
     showTypingIndicator();
-    animateProgressBar();
+    
     
     try {
         const response = await fetch(`${apiUrl}/analyze`, {
@@ -749,6 +784,9 @@ function updateExplainerUrl(url) {
     checkApiStatus();
 }
 
+// Auto-check API status every 30 seconds
+setInterval(checkApiStatus, 30000); 
+
 // Theme toggle functionality
 function toggleTheme() {
     const body = document.body;
@@ -845,76 +883,6 @@ function setupImagePicker() {
     }
   });
 }
-
-// === Image Options Dropdown Functions ===
-function isSmallScreen() {
-  return window.innerWidth <= 1024; // Mobile and tablet breakpoint
-}
-
-function updateCameraOptionVisibility() {
-  const dropdown = document.getElementById('imageOptionsDropdown');
-  const cameraOption = dropdown?.querySelector('.dropdown-option:first-child');
-  
-  if (cameraOption) {
-    if (isSmallScreen()) {
-      cameraOption.style.display = 'flex';
-    } else {
-      cameraOption.style.display = 'none';
-    }
-  }
-}
-
-function toggleImageOptions() {
-  const dropdown = document.getElementById('imageOptionsDropdown');
-  
-  if (dropdown) {
-    // Update camera option visibility before showing dropdown
-    updateCameraOptionVisibility();
-    dropdown.classList.toggle('hidden');
-  }
-}
-
-function selectImage() {
-  const fileInput = document.getElementById('imagePicker');
-  if (fileInput) {
-    fileInput.click();
-  }
-  // Hide dropdown after selection
-  const dropdown = document.getElementById('imageOptionsDropdown');
-  if (dropdown) {
-    dropdown.classList.add('hidden');
-  }
-}
-
-function openCamera() {
-  // For now, we'll use the file input with camera capture
-  const fileInput = document.getElementById('imagePicker');
-  if (fileInput) {
-    fileInput.setAttribute('capture', 'environment');
-    fileInput.click();
-    // Reset capture attribute after use
-    setTimeout(() => {
-      fileInput.removeAttribute('capture');
-    }, 100);
-  }
-  // Hide dropdown after selection
-  const dropdown = document.getElementById('imageOptionsDropdown');
-  if (dropdown) {
-    dropdown.classList.add('hidden');
-  }
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', function(event) {
-  const dropdown = document.getElementById('imageOptionsDropdown');
-  const imageBtn = document.getElementById('imageOptionsBtn');
-  
-  if (dropdown && !dropdown.classList.contains('hidden') && 
-      !imageBtn.contains(event.target) && 
-      !dropdown.contains(event.target)) {
-    dropdown.classList.add('hidden');
-  }
-});
 let authMode = "login"; // "login" or "register"
 
 function openLoginModal() {
@@ -1041,3 +1009,88 @@ window.addEventListener("load", () => {
   updateUserUI();
 });
 
+// === Image Options Dropdown Functions ===
+function isSmallScreen() {
+  return window.innerWidth <= 1024; // Mobile and tablet breakpoint
+}
+
+function updateCameraOptionVisibility() {
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  const cameraOption = dropdown?.querySelector('.dropdown-option:first-child');
+  
+  if (cameraOption) {
+    if (isSmallScreen()) {
+      cameraOption.style.display = 'flex';
+    } else {
+      cameraOption.style.display = 'none';
+    }
+  }
+}
+
+function toggleImageOptions() {
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  
+  if (dropdown) {
+    // Update camera option visibility before showing dropdown
+    updateCameraOptionVisibility();
+    dropdown.classList.toggle('hidden');
+  }
+}
+
+function selectImage() {
+  const fileInput = document.getElementById('imagePicker');
+  if (fileInput) {
+    fileInput.click();
+  }
+  // Hide dropdown after selection
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  if (dropdown) {
+    dropdown.classList.add('hidden');
+  }
+}
+
+function openCamera() {
+  // For now, we'll use the file input with camera capture
+  const fileInput = document.getElementById('imagePicker');
+  if (fileInput) {
+    fileInput.setAttribute('capture', 'environment');
+    fileInput.click();
+    // Reset capture attribute after use
+    setTimeout(() => {
+      fileInput.removeAttribute('capture');
+    }, 100);
+  }
+  // Hide dropdown after selection
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  if (dropdown) {
+    dropdown.classList.add('hidden');
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  const imageBtn = document.getElementById('imageOptionsBtn');
+  
+  if (dropdown && !dropdown.classList.contains('hidden') && 
+      !imageBtn.contains(event.target) && 
+      !dropdown.contains(event.target)) {
+    dropdown.classList.add('hidden');
+  }
+});
+/* splash screen */
+window.addEventListener("load", () => {
+  const splash = document.getElementById("splashScreen");
+
+  // Keep splash visible for a bit, then fade out
+  setTimeout(() => {
+    splash.classList.add("hide");
+
+    // Wait until splash animation finishes
+    setTimeout(() => {
+      if (typeof window.startOnboarding === "function") {
+        window.startOnboarding(); // ✅ start onboarding
+      }
+    }, 300); // match your splash fade-out transition
+  }, 1900); // how long splash stays visible
+});
