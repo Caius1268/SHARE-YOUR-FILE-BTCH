@@ -102,15 +102,53 @@ window.startOnboarding = function () {
     const btn = document.querySelector(`.nav-btn[data-section="${section}"]`);
     if (btn) {
       btn.classList.add('onb-highlight');
+      updateDim();
       return true;
     }
+    updateDim();
     return false;
   }
   function highlightSection(section) {
     clearHighlights();
     const sec = document.querySelector(`#${section}Section, #${section}MainSection`);
     if (sec) sec.classList.add('onb-highlight');
+    updateDim();
   }
+
+  function updateDim() {
+    const dim = document.querySelector('.onb-dim');
+    const highlighted = document.querySelector('.onb-highlight');
+
+    if (!dim) return;
+
+    if (highlighted) {
+      const rect = highlighted.getBoundingClientRect();
+      const padding = 8;
+
+      const top = rect.top - padding;
+      const left = rect.left - padding;
+      const right = rect.right + padding;
+      const bottom = rect.bottom + padding;
+
+      // Polygon that dims everything except the highlighted element
+      dim.style.clipPath = `polygon(
+        0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+        0 ${top}px, ${left}px ${top}px, ${left}px ${bottom}px, ${right}px ${bottom}px, ${right}px ${top}px, 0 ${top}px
+      )`;
+    } else {
+      dim.style.clipPath = 'none';
+    }
+  }
+
+  // Update on resize
+  window.addEventListener('resize', updateDim);
+
+    // Track movement continuously
+  function animateDim() {
+    updateDim();
+    requestAnimationFrame(animateDim);
+  }
+  animateDim();
 
   const steps = [
     { title: 'Chat Scanner', desc: 'Open the Chat Scanner from the sidebar.', section: 'chat', mode: 'btn' },
@@ -167,11 +205,21 @@ window.startOnboarding = function () {
     showStep(0);
   }
 
-  function finish() {
-    clearHighlights();
-    restoreSidebarOriginal();
-    root.remove();
+function finish() {
+  clearHighlights();
+  restoreSidebarOriginal();
+
+  // Go back to Chat section before closing
+  if (typeof window.showSection === 'function') {
+    window.showSection('chat');
+  } else {
+    // fallback: simulate clicking Chat nav button
+    const chatBtn = document.querySelector('.nav-btn[data-section="chat"]');
+    if (chatBtn) chatBtn.click();
   }
+
+  root.remove();
+}
 
   // Bind events
   btnYes.onclick = start;

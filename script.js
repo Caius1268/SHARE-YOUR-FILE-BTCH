@@ -911,7 +911,6 @@ function handleAuthAction() {
     alert("Please fill in all fields");
     return;
   }
-
   if (authMode === "register") {
     localStorage.setItem("surlinkUser", JSON.stringify({ email, password }));
     alert("✅ Registration successful! You can now log in.");
@@ -921,6 +920,8 @@ function handleAuthAction() {
     if (storedUser && storedUser.email === email && storedUser.password === password) {
       localStorage.setItem("surlinkLoggedIn", "true");
       localStorage.setItem("surlinkLoggedUser", email);
+      localStorage.removeItem("surlinkGoogleName");
+      localStorage.removeItem("surlinkGooglePic");
       updateUserUI();
       closeLoginModal();
     } else {
@@ -929,80 +930,56 @@ function handleAuthAction() {
   }
 }
 
-function logout() {
-  localStorage.removeItem("surlinkLoggedIn");
-  localStorage.removeItem("surlinkLoggedUser");
+
+// Unified Google & Local login/profile logic
+window.setGoogleUser = function(data) {
+  localStorage.setItem("surlinkLoggedIn", "true");
+  localStorage.setItem("surlinkLoggedUser", data.email);
+  localStorage.setItem("surlinkGoogleName", data.name);
+  localStorage.setItem("surlinkGooglePic", data.picture);
   updateUserUI();
-}
+  closeLoginModal();
+};
 
 function updateUserUI() {
   const loggedIn = localStorage.getItem("surlinkLoggedIn") === "true";
-  const email = localStorage.getItem("surlinkLoggedUser");
-}
-// === Variables ===
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const userEmail = document.getElementById("userEmail");
-const authModal = document.getElementById("authModal");
-const authEmail = document.getElementById("authEmail");
-const authPassword = document.getElementById("authPassword");
+  const email = localStorage.getItem("surlinkLoggedUser") || "";
+  const name = localStorage.getItem("surlinkGoogleName") || "";
+  const pic = localStorage.getItem("surlinkGooglePic") || "";
 
-// Login state
-let loggedIn = false;
-let email = "";
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const userEmail = document.getElementById("userEmail");
+  const userName = document.getElementById("userName");
+  const userPic = document.getElementById("userPic");
 
-// === Update UI based on login state ===
-function updateAuthUI() {
   if (loggedIn) {
     logoutBtn.classList.remove("hidden");
     loginBtn.classList.add("hidden");
-    userEmail.innerText = email;
-    authModal.classList.add("hidden"); // hide modal if open
+    userEmail.innerText = email || "";
+    userName.innerText = name || "";
+    if (pic) {
+      userPic.src = pic;
+      userPic.style.display = "block";
+    } else {
+      userPic.style.display = "none";
+    }
   } else {
     logoutBtn.classList.add("hidden");
     loginBtn.classList.remove("hidden");
     userEmail.innerText = "Not logged in";
+    if (userName) userName.innerText = "";
+    if (userPic) userPic.style.display = "none";
   }
 }
 
-// === Open login modal ===
-loginBtn.addEventListener("click", () => {
-  authModal.classList.remove("hidden");
-});
-
-// === Close modal function ===
-function closeLoginModal() {
-  authModal.classList.add("hidden");
+function logout() {
+  localStorage.removeItem("surlinkLoggedIn");
+  localStorage.removeItem("surlinkLoggedUser");
+  localStorage.removeItem("surlinkGoogleName");
+  localStorage.removeItem("surlinkGooglePic");
+  updateUserUI();
 }
-
-// === Login / Register handler (simple simulation) ===
-function handleAuthAction() {
-  // Normally you would validate user here
-  if (authEmail.value && authPassword.value) {
-    loggedIn = true;
-    email = authEmail.value;
-    updateAuthUI();
-    // Clear inputs
-    authEmail.value = "";
-    authPassword.value = "";
-  } else {
-    alert("Please enter email and password");
-  }
-}
-
-// === Logout handler ===
-logoutBtn.addEventListener("click", () => {
-  loggedIn = false;
-  email = "";
-  updateAuthUI();
-});
-
-// Initial UI setup
-updateAuthUI();
-
-
-
-
 
 // Call on page load
 window.addEventListener("load", () => {
